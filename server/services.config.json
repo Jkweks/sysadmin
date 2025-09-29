@@ -1,0 +1,24 @@
+[
+  {
+    "id": "dashboard-api",
+    "label": "Admin API",
+    "description": "Express backend that forwards actions to N8N",
+    "project": "kweks-admin",
+    "service": "api",
+    "composeFile": "./docker-compose.yml",
+    "webhook": {
+      "url": "${N8N_WEBHOOK_URL}",
+      "payload": {
+        "type": "compose-service"
+      }
+    }
+  },
+  {
+    "id": "dashboard-ui",
+    "label": "Admin Dashboard UI",
+    "description": "Static dashboard served via Nginx",
+    "project": "kweks-admin",
+    "service": "web",
+    "composeFile": "./docker-compose.yml"
+  }
+]

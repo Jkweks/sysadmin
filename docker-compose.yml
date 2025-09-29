@@ -1,0 +1,29 @@
+name: kweks-admin
+
+services:
+  api:
+    build:
+      context: ./server
+    environment:
+      PORT: 3001
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+      N8N_WEBHOOK_TIMEOUT: ${N8N_WEBHOOK_TIMEOUT:-5000}
+      SERVICES_CONFIG_PATH: /app/services.config.json
+      DOCKER_SOCKET_PATH: /var/run/docker.sock
+    volumes:
+      - ./server/services.config.json:/app/services.config.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./client
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+    restart: unless-stopped
