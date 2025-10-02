@@ -6,7 +6,7 @@ services:
       context: ./server
     environment:
       PORT: 3001
-      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+      N8N_WEBHOOK_URL: https://n8n.kweks.co/webhook/04fca9af-9205-4dad-829b-a6a9d110d1a5
       N8N_WEBHOOK_TIMEOUT: ${N8N_WEBHOOK_TIMEOUT:-5000}
       SERVICES_CONFIG_PATH: /app/services.config.json
       DOCKER_SOCKET_PATH: /var/run/docker.sock
@@ -14,7 +14,7 @@ services:
       - ./server/services.config.json:/app/services.config.json:ro
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "3001:3001"
+      - "3033:3001"
     restart: unless-stopped
 
   web:
@@ -25,5 +25,5 @@ services:
     depends_on:
       - api
     ports:
-      - "8080:80"
+      - "8087:80"
     restart: unless-stopped
