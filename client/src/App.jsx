@@ -213,11 +213,10 @@ export default function App() {
     setBusyId(id);
     setMessage(null);
     try {
-      const response = await sendAction(id, action, reason);
+      await sendAction(id, action, reason);
       setMessage({
         type: 'success',
-        text: `Action ${action.toUpperCase()} queued for ${id}`,
-        detail: response,
+        text: 'Action Success',
       });
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
