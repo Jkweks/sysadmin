@@ -23,6 +23,12 @@ export async function fetchServices() {
   return data.services || [];
 }
 
+export async function fetchDevices() {
+  const response = await fetch(`${API_BASE_URL}/devices`);
+  const data = await handleResponse(response);
+  return data.devices || [];
+}
+
 export async function sendServiceAction(serviceId, action, reason) {
   const response = await fetch(`${API_BASE_URL}/services/${serviceId}/actions`, {
     method: 'POST',

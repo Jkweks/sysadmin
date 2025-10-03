@@ -11,6 +11,7 @@ This document summarises how to configure the admin dashboard services without t
 | `N8N_WEBHOOK_TIMEOUT` | Request timeout, in milliseconds (defaults to `5000`). |
 | `N8N_WEBHOOK_HEADERS` | JSON object encoded as a string that is merged into the webhook request headers. |
 | `SERVICES_CONFIG_PATH` | Absolute path to the JSON configuration file describing Docker Compose services. |
+| `DEVICES_CONFIG_PATH` | Absolute path to the JSON configuration file describing monitored devices. |
 | `DOCKER_SOCKET_PATH` | Path to the Docker Engine socket (defaults to `/var/run/docker.sock`). |
 
 ## Service configuration
@@ -85,3 +86,32 @@ When a user requests an action, the backend posts a JSON payload like the follow
 N8N can use the `commands` map to execute shell steps or trigger other automation flows.
 
 The API response sent back to the dashboard mirrors this payload (with webhook response metadata) so operators can see what was dispatched.
+
+## Device configuration
+
+Devices monitored via the dashboard are read from `server/devices.config.json` (or the path specified by
+`DEVICES_CONFIG_PATH`). Each entry describes a Windows machine to monitor via ICMP ping.
+
+```json
+[
+  {
+    "id": "ops-desktop",
+    "label": "Operations Desktop",
+    "description": "Primary Windows workstation for the ops team",
+    "type": "windows",
+    "address": "192.168.1.50",
+    "pingCount": 1,
+    "timeoutMs": 4000
+  }
+]
+```
+
+### Device fields
+
+- `id`, `label`, and `address` are required.
+- `description` and `type` are optional metadata displayed in the UI.
+- `pingCount` and `timeoutMs` allow tuning how many pings are attempted and how long (in milliseconds) the server waits for a reply.
+
+When the dashboard requests `/api/devices`, the backend pings each configured address. Devices that respond are marked `online`,
+and the response latency is reported when available. Devices that do not respond are marked `offline`, and the backend remembers
+the most recent time a successful ping was observed so operators can see when a machine was last reachable.

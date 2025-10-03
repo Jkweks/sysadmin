@@ -1,0 +1,18 @@
+[
+  {
+    "id": "ops-desktop",
+    "label": "Operations Desktop",
+    "description": "Primary Windows workstation for the ops team",
+    "type": "windows",
+    "address": "192.168.1.50",
+    "pingCount": 1,
+    "timeoutMs": 4000
+  },
+  {
+    "id": "warehouse-terminal",
+    "label": "Warehouse Terminal",
+    "description": "Front-of-house PC used for order fulfilment",
+    "type": "windows",
+    "address": "192.168.1.51"
+  }
+]

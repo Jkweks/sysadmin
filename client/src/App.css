@@ -24,6 +24,35 @@ header {
   margin-bottom: 2rem;
 }
 
+.tabs {
+  display: inline-flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.12);
+  padding: 0.25rem;
+}
+
+.tab {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.tab:hover {
+  color: #e2e8f0;
+}
+
+.tab.active {
+  background: rgba(148, 163, 184, 0.25);
+  color: #e2e8f0;
+}
+
 h1 {
   margin: 0;
   font-size: 2rem;
@@ -60,6 +89,10 @@ table {
   border-collapse: collapse;
 }
 
+.device-table {
+  table-layout: fixed;
+}
+
 th,
 td {
   padding: 0.75rem 1rem;
@@ -87,6 +120,42 @@ tr + tr td {
   margin-top: 0.25rem;
   color: #94a3b8;
   font-size: 0.9rem;
+}
+
+.device-name {
+  font-weight: 600;
+}
+
+.device-description {
+  margin-top: 0.25rem;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.device-detail {
+  margin-top: 0.35rem;
+  color: #cbd5f5;
+  font-size: 0.85rem;
+}
+
+.device-address {
+  font-family: 'JetBrains Mono', 'Fira Code', 'SFMono-Regular', ui-monospace, SFMono-Regular,
+    Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.95rem;
+}
+
+.device-meta {
+  margin-top: 0.35rem;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.device-meta:first-of-type {
+  margin-top: 0.5rem;
+}
+
+.device-meta.subtle {
+  color: #64748b;
 }
 
 .service-detail {

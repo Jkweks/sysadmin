@@ -9,9 +9,11 @@ services:
       N8N_WEBHOOK_URL: https://n8n.kweks.co/webhook/04fca9af-9205-4dad-829b-a6a9d110d1a5
       N8N_WEBHOOK_TIMEOUT: ${N8N_WEBHOOK_TIMEOUT:-5000}
       SERVICES_CONFIG_PATH: /app/services.config.json
+      DEVICES_CONFIG_PATH: /app/devices.config.json
       DOCKER_SOCKET_PATH: /var/run/docker.sock
     volumes:
       - ./server/services.config.json:/app/services.config.json:ro
+      - ./server/devices.config.json:/app/devices.config.json:ro
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "3033:3001"

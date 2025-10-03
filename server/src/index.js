@@ -8,6 +8,7 @@ import {
   setDesiredState,
   buildActionContext,
 } from './dockerService.js';
+import { getDevicesWithStatus } from './deviceService.js';
 
 dotenv.config();
 
@@ -66,6 +67,18 @@ app.get('/api/services', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: 'Unable to load services',
+      detail: error.message,
+    });
+  }
+});
+
+app.get('/api/devices', async (req, res) => {
+  try {
+    const devices = await getDevicesWithStatus();
+    res.json({ devices });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Unable to load devices',
       detail: error.message,
     });
   }

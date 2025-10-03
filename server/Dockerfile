@@ -10,6 +10,7 @@ RUN npm install --omit=dev && npm cache clean --force
 # Copy source code
 COPY src ./src
 COPY services.config.json ./services.config.json
+COPY devices.config.json ./devices.config.json
 
 ENV NODE_ENV=production
 ENV PORT=3001
