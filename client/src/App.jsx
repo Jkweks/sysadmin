@@ -1,30 +1,38 @@
 import { useMemo, useState } from 'react';
 import './App.css';
+import { useDevices } from './hooks/useDevices.js';
 import { useServices } from './hooks/useServices.js';
 
 const statusColors = {
   up: '#22c55e',
   down: '#ef4444',
   degraded: '#f97316',
+  online: '#22c55e',
+  offline: '#ef4444',
   unknown: '#94a3b8',
 };
 
 function StatusPill({ status }) {
-  const color = statusColors[status.state] || statusColors.unknown;
+  const state = status?.state || 'unknown';
+  const color = statusColors[state] || statusColors.unknown;
   return (
     <span className="status-pill" style={{ backgroundColor: color }}>
-      {status.state.toUpperCase()}
+      {state.toUpperCase()}
     </span>
   );
 }
 
 function formatDate(date) {
   if (!date) return 'never';
+  const value = typeof date === 'string' ? new Date(date) : date;
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+    return 'never';
+  }
   return new Intl.DateTimeFormat(undefined, {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-  }).format(date);
+  }).format(value);
 }
 
 function formatRelativeTime(isoString) {
@@ -204,8 +212,64 @@ function ServiceRow({ service, onAction, busyId }) {
   );
 }
 
+function DeviceRow({ device }) {
+  const status = device.status || { state: 'unknown' };
+  const latency =
+    typeof status.latencyMs === 'number' && Number.isFinite(status.latencyMs)
+      ? `${status.latencyMs.toFixed(1)} ms`
+      : null;
+  const lastChecked = status.lastChecked ? formatDate(status.lastChecked) : 'never';
+  const lastCheckedRelative = status.lastChecked
+    ? formatRelativeTime(status.lastChecked)
+    : '';
+  const lastOnlineRelative =
+    status.state !== 'online' && status.lastOnline ? formatRelativeTime(status.lastOnline) : null;
+
+  return (
+    <tr>
+      <td>
+        <div className="device-name">{device.label}</div>
+        {device.description && <div className="device-description">{device.description}</div>}
+        <div className="device-meta">Type: {device.type || '—'}</div>
+      </td>
+      <td>
+        <StatusPill status={status} />
+        {status.detail && <div className="device-detail">{status.detail}</div>}
+        {latency && <div className="device-meta">Latency: {latency}</div>}
+      </td>
+      <td>
+        <div className="device-address">{device.address || '—'}</div>
+      </td>
+      <td>
+        <div className="device-meta">Last checked: {lastChecked}</div>
+        {lastCheckedRelative && (
+          <div className="device-meta subtle">{lastCheckedRelative}</div>
+        )}
+        {lastOnlineRelative && (
+          <div className="device-meta subtle">Last online {lastOnlineRelative}</div>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 export default function App() {
-  const { services, loading, error, sendAction, lastUpdated, refresh } = useServices();
+  const [activeTab, setActiveTab] = useState('services');
+  const {
+    services,
+    loading: servicesLoading,
+    error: servicesError,
+    sendAction,
+    lastUpdated: servicesLastUpdated,
+    refresh: refreshServices,
+  } = useServices();
+  const {
+    devices,
+    loading: devicesLoading,
+    error: devicesError,
+    lastUpdated: devicesLastUpdated,
+    refresh: refreshDevices,
+  } = useDevices({ enabled: activeTab === 'devices' });
   const [busyId, setBusyId] = useState(null);
   const [message, setMessage] = useState(null);
 
@@ -225,6 +289,12 @@ export default function App() {
     }
   };
 
+  const isServicesTab = activeTab === 'services';
+  const currentLoading = isServicesTab ? servicesLoading : devicesLoading;
+  const currentError = isServicesTab ? servicesError : devicesError;
+  const currentLastUpdated = isServicesTab ? servicesLastUpdated : devicesLastUpdated;
+  const handleRefresh = isServicesTab ? refreshServices : refreshDevices;
+
   return (
     <div className="app">
       <header>
@@ -233,14 +303,31 @@ export default function App() {
           <p>Monitor docker compose services and trigger automations via N8N.</p>
         </div>
         <div className="header-actions">
-          <button className="btn" onClick={refresh} disabled={loading}>
+          <button className="btn" onClick={handleRefresh} disabled={currentLoading}>
             Refresh
           </button>
-          <div className="last-updated">Last updated: {formatDate(lastUpdated)}</div>
+          <div className="last-updated">Last updated: {formatDate(currentLastUpdated)}</div>
         </div>
       </header>
 
-      {message && (
+      <div className="tabs">
+        <button
+          type="button"
+          className={`tab ${isServicesTab ? 'active' : ''}`}
+          onClick={() => setActiveTab('services')}
+        >
+          Services
+        </button>
+        <button
+          type="button"
+          className={`tab ${activeTab === 'devices' ? 'active' : ''}`}
+          onClick={() => setActiveTab('devices')}
+        >
+          Devices
+        </button>
+      </div>
+
+      {isServicesTab && message && (
         <div className={`alert ${message.type}`}>
           <div>{message.text}</div>
           {message.detail && (
@@ -249,44 +336,76 @@ export default function App() {
         </div>
       )}
 
-      {error && <div className="alert error">{error}</div>}
+      {currentError && <div className="alert error">{currentError}</div>}
 
       <div className="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Service</th>
-              <th>Status</th>
-              <th>Container</th>
-              <th>Desired State</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
+        {isServicesTab ? (
+          <table>
+            <thead>
               <tr>
-                <td colSpan="5" className="loading-row">
-                  Loading services…
-                </td>
+                <th>Service</th>
+                <th>Status</th>
+                <th>Container</th>
+                <th>Desired State</th>
+                <th>Actions</th>
               </tr>
-            )}
-            {!loading && services.length === 0 && (
+            </thead>
+            <tbody>
+              {servicesLoading && (
+                <tr>
+                  <td colSpan="5" className="loading-row">
+                    Loading services…
+                  </td>
+                </tr>
+              )}
+              {!servicesLoading && services.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="empty-row">
+                    No services configured. Update services.config.json on the server.
+                  </td>
+                </tr>
+              )}
+              {services.map((service) => (
+                <ServiceRow
+                  key={service.id}
+                  service={service}
+                  onAction={handleAction}
+                  busyId={busyId}
+                />
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <table className="device-table">
+            <thead>
               <tr>
-                <td colSpan="5" className="empty-row">
-                  No services configured. Update services.config.json on the server.
-                </td>
+                <th>Device</th>
+                <th>Status</th>
+                <th>Address</th>
+                <th>Checks</th>
               </tr>
-            )}
-            {services.map((service) => (
-              <ServiceRow
-                key={service.id}
-                service={service}
-                onAction={handleAction}
-                busyId={busyId}
-              />
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {devicesLoading && (
+                <tr>
+                  <td colSpan="4" className="loading-row">
+                    Checking devices…
+                  </td>
+                </tr>
+              )}
+              {!devicesLoading && devices.length === 0 && (
+                <tr>
+                  <td colSpan="4" className="empty-row">
+                    No devices configured. Update devices.config.json on the server.
+                  </td>
+                </tr>
+              )}
+              {devices.map((device) => (
+                <DeviceRow key={device.id} device={device} />
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
