@@ -1,18 +1,25 @@
 [
   {
-    "id": "ops-desktop",
-    "label": "Operations Desktop",
-    "description": "Primary Windows workstation for the ops team",
-    "type": "windows",
-    "address": "192.168.1.50",
+    "id": "unsc-terminus",
+    "label": "UNSC Terminus",
+    "description": "Homelab server",
+    "type": "Windows",
+    "address": "192.168.4.249",
     "pingCount": 1,
     "timeoutMs": 4000
   },
   {
-    "id": "warehouse-terminal",
-    "label": "Warehouse Terminal",
-    "description": "Front-of-house PC used for order fulfilment",
-    "type": "windows",
-    "address": "192.168.1.51"
+    "id": "ha",
+    "label": "Home Assistant",
+    "description": "Home Assistant Virtual Machine",
+    "type": "VM-HAOS",
+    "address": "192.168.4.3"
+  },
+  {
+    "id": "servarr",
+    "label": "Servarr",
+    "description": "Media Management Server",
+    "type": "VM-Linux Server",
+    "address": "192.168.5.17"    
   }
 ]

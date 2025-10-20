@@ -22,6 +22,18 @@
     "url": "https://n8n.kweks.co/webhook/04fca9af-9205-4dad-829b-a6a9d110d1a5",
       "type": "compose-service"
     }
+},
+{  
+  "id": "fabmin",
+  "label": "ForgeDesk App",
+  "description": "Fabrication Dashboard",
+  "project": "fabmin",
+  "service": "frontend",
+  "composeFile": "./docker-compose.yml",
+  "webhook": {
+    "url": "https://n8n.kweks.co/webhook/04fca9af-9205-4dad-829b-a6a9d110d1a5",
+      "type": "compose-service"
+    }
 }
   
 ]
