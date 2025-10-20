@@ -124,6 +124,13 @@ function ServiceRow({ service, onAction, busyId }) {
               Bring Up
             </button>
             <button
+              className="btn btn-build"
+              onClick={() => handleAction('build')}
+              disabled={isBusy}
+            >
+              Build & Up
+            </button>
+            <button
               className="btn btn-down"
               onClick={() => handleAction('down')}
               disabled={isBusy}

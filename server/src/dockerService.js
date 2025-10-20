@@ -93,6 +93,10 @@ function composeCommandForAction(service, action) {
       args.push('up', '-d');
       args.push(...targets);
       break;
+    case 'build':
+      args.push('up', '--build', '-d');
+      args.push(...targets);
+      break;
     case 'down':
       // Use stop instead of down to avoid tearing down the whole project
       args.push('stop');
@@ -150,7 +154,7 @@ export function buildActionContext(service) {
     services: composeServiceTarget(service),
   };
 
-  const commands = ['up', 'down', 'restart'].reduce((acc, action) => {
+  const commands = ['up', 'build', 'down', 'restart'].reduce((acc, action) => {
     const command = composeCommandForAction(service, action);
     if (command) {
       acc[action] = command;

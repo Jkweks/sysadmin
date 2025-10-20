@@ -226,6 +226,11 @@ tr + tr td {
   color: #052e16;
 }
 
+.btn-build {
+  background: linear-gradient(135deg, #38bdf8, #0284c7);
+  color: #f0f9ff;
+}
+
 .btn-down {
   background: linear-gradient(135deg, #ef4444, #b91c1c);
   color: #fee2e2;
