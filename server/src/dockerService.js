@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Docker from 'dockerode';
+import YAML from 'yaml';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,6 +14,8 @@ const DEFAULT_CONFIG_PATH = process.env.SERVICES_CONFIG_PATH
 const docker = new Docker({
   socketPath: process.env.DOCKER_SOCKET_PATH || '/var/run/docker.sock',
 });
+
+const CONFIG_DIR = path.dirname(DEFAULT_CONFIG_PATH);
 
 function sanitiseService(service) {
   if (!service || typeof service !== 'object') {
@@ -124,6 +127,214 @@ function composeCommandForAction(service, action) {
   };
 }
 
+async function resolveComposeFilePath(service) {
+  const composeFile = service?.composeFile;
+  if (!composeFile) {
+    return { resolvedPath: null, attemptedPaths: [], error: 'No compose file specified' };
+  }
+
+  const attemptedPaths = [];
+  if (path.isAbsolute(composeFile)) {
+    attemptedPaths.push(composeFile);
+  } else {
+    if (service.composeBaseDir) {
+      attemptedPaths.push(path.resolve(service.composeBaseDir, composeFile));
+    }
+    if (process.env.COMPOSE_BASE_DIR) {
+      attemptedPaths.push(path.resolve(process.env.COMPOSE_BASE_DIR, composeFile));
+    }
+    attemptedPaths.push(path.resolve(CONFIG_DIR, composeFile));
+    attemptedPaths.push(path.resolve(process.cwd(), composeFile));
+  }
+
+  for (const candidate of attemptedPaths) {
+    try {
+      await fs.access(candidate);
+      return { resolvedPath: candidate, attemptedPaths, error: null };
+    } catch (error) {
+      // Continue trying other candidates
+    }
+  }
+
+  if (path.isAbsolute(composeFile)) {
+    return { resolvedPath: null, attemptedPaths: [composeFile], error: `Compose file not found: ${composeFile}` };
+  }
+
+  return {
+    resolvedPath: null,
+    attemptedPaths,
+    error: `Compose file not found: ${composeFile}`,
+  };
+}
+
+async function loadComposeFileDefinition(service) {
+  const composeFile = service?.composeFile;
+  if (!composeFile) {
+    return {
+      file: null,
+      resolvedFile: null,
+      services: [],
+      error: 'No compose file specified',
+    };
+  }
+
+  const { resolvedPath, attemptedPaths, error: resolveError } = await resolveComposeFilePath(service);
+  if (!resolvedPath) {
+    return {
+      file: composeFile,
+      resolvedFile: attemptedPaths.at(-1) || null,
+      services: [],
+      error: resolveError,
+    };
+  }
+
+  let parsed;
+  try {
+    const raw = await fs.readFile(resolvedPath, 'utf-8');
+    parsed = YAML.parse(raw);
+  } catch (error) {
+    return {
+      file: composeFile,
+      resolvedFile: resolvedPath,
+      services: [],
+      error: `Unable to read compose file (${error.message})`,
+    };
+  }
+
+  const composeServices = parsed?.services;
+  if (!composeServices || typeof composeServices !== 'object') {
+    return {
+      file: composeFile,
+      resolvedFile: resolvedPath,
+      services: [],
+      error: 'Compose file has no services section',
+    };
+  }
+
+  const services = Object.keys(composeServices)
+    .filter((name) => typeof name === 'string' && name.trim().length > 0)
+    .map((name) => name.trim())
+    .sort((a, b) => a.localeCompare(b));
+
+  if (services.length === 0) {
+    return {
+      file: composeFile,
+      resolvedFile: resolvedPath,
+      services: [],
+      error: 'No services defined in compose file',
+    };
+  }
+
+  return {
+    file: composeFile,
+    resolvedFile: resolvedPath,
+    services,
+    error: null,
+  };
+}
+
+function summariseStackServices(entries) {
+  if (!entries || entries.length === 0) {
+    return null;
+  }
+
+  const containers = entries.flatMap((entry) => entry.status?.containers || []);
+  const raw = entries.flatMap((entry) => entry.status?.raw || []);
+  const downServices = entries.filter((entry) => entry.status?.state === 'down');
+  const degradedServices = entries.filter((entry) => entry.status?.state === 'degraded');
+  const unknownServices = entries.filter((entry) => entry.status?.state === 'unknown');
+  const upServices = entries.filter((entry) => entry.status?.state === 'up');
+
+  let state = 'unknown';
+  let detail = 'Unable to determine stack state.';
+
+  if (downServices.length > 0) {
+    state = 'down';
+    const names = downServices.map((entry) => entry.name).join(', ');
+    detail = downServices.length === entries.length
+      ? 'All services are currently down.'
+      : `Down services: ${names}.`;
+  } else if (degradedServices.length > 0) {
+    state = 'degraded';
+    const names = degradedServices.map((entry) => entry.name).join(', ');
+    detail = `Services with issues: ${names}.`;
+  } else if (unknownServices.length > 0 && upServices.length === 0) {
+    state = 'unknown';
+    detail = 'All services are reporting an unknown status.';
+  } else if (unknownServices.length > 0) {
+    state = 'degraded';
+    const names = unknownServices.map((entry) => entry.name).join(', ');
+    detail = `Unknown state for services: ${names}.`;
+  } else {
+    state = 'up';
+    detail = `All ${entries.length} services running.`;
+  }
+
+  const primaryContainer =
+    entries.length === 1
+      ? entries[0].status?.container || entries[0].status?.containers?.[0]?.name || null
+      : `Stack (${entries.length} services)`;
+
+  return {
+    state,
+    detail,
+    container: primaryContainer,
+    containers,
+    raw,
+  };
+}
+
+async function describeComposeStack(service) {
+  if (!service?.composeFile) {
+    return null;
+  }
+
+  const composeDefinition = await loadComposeFileDefinition(service);
+  if (composeDefinition.services.length === 0) {
+    return {
+      project: service.project || null,
+      file: composeDefinition.file,
+      resolvedFile: composeDefinition.resolvedFile,
+      services: [],
+      counts: {},
+      summary: null,
+      error: composeDefinition.error,
+      primaryService: service.service || null,
+    };
+  }
+
+  const stackServices = await Promise.all(
+    composeDefinition.services.map(async (serviceName) => {
+      const status = await getComposeStatus({ ...service, service: serviceName });
+      return {
+        name: serviceName,
+        status,
+      };
+    })
+  );
+
+  stackServices.sort((a, b) => a.name.localeCompare(b.name));
+
+  const counts = stackServices.reduce((acc, entry) => {
+    const key = entry.status?.state || 'unknown';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  const summary = summariseStackServices(stackServices);
+
+  return {
+    project: service.project || null,
+    file: composeDefinition.file,
+    resolvedFile: composeDefinition.resolvedFile,
+    services: stackServices,
+    counts,
+    summary,
+    error: composeDefinition.error,
+    primaryService: service.service || null,
+  };
+}
+
 export function buildActionContext(service) {
   const hasComposeContext = Boolean(
     service &&
@@ -232,6 +443,14 @@ function describeContainer(entry) {
   const healthStatus = state?.Health?.Status || null;
   const statusText =
     state?.Status || summary.State || summary.Status || (state?.Running ? 'running' : 'unknown');
+  const composeProject =
+    summary.Labels?.['com.docker.compose.project'] ||
+    inspect?.Config?.Labels?.['com.docker.compose.project'] ||
+    null;
+  const composeService =
+    summary.Labels?.['com.docker.compose.service'] ||
+    inspect?.Config?.Labels?.['com.docker.compose.service'] ||
+    null;
   return {
     id: summary.Id,
     name:
@@ -246,6 +465,8 @@ function describeContainer(entry) {
     startedAt: state?.StartedAt || null,
     finishedAt: state?.FinishedAt || null,
     inspectError: entry.inspectError || null,
+    composeProject,
+    composeService,
   };
 }
 
@@ -338,7 +559,11 @@ export async function getServices() {
   const services = await loadServicesConfig();
   const resolved = await Promise.all(
     services.map(async (service) => {
-      const status = await getComposeStatus(service);
+      const stack = await describeComposeStack(service);
+      let status = stack?.summary;
+      if (!status) {
+        status = await getComposeStatus(service);
+      }
       const desired = desiredStates.get(service.id) || null;
       const actionContext = buildActionContext(service);
       const safeService = sanitiseService(service);
@@ -348,6 +573,7 @@ export async function getServices() {
         desired,
         actions: actionContext.commands,
         compose: actionContext.compose,
+        stack,
       };
     })
   );
