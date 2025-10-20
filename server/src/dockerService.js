@@ -127,6 +127,36 @@ function composeCommandForAction(service, action) {
   };
 }
 
+function normalisePathList(value) {
+  if (!value) {
+    return [];
+  }
+
+  const source = Array.isArray(value) ? value : [value];
+  return source
+    .filter((item) => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function envPathList(value) {
+  if (!value) {
+    return [];
+  }
+
+  return value
+    .split(path.delimiter)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function pushUnique(list, value) {
+  if (!value || list.includes(value)) {
+    return;
+  }
+  list.push(value);
+}
+
 async function resolveComposeFilePath(service) {
   const composeFile = service?.composeFile;
   if (!composeFile) {
@@ -135,16 +165,20 @@ async function resolveComposeFilePath(service) {
 
   const attemptedPaths = [];
   if (path.isAbsolute(composeFile)) {
-    attemptedPaths.push(composeFile);
+    pushUnique(attemptedPaths, composeFile);
   } else {
-    if (service.composeBaseDir) {
-      attemptedPaths.push(path.resolve(service.composeBaseDir, composeFile));
+    const candidateRoots = [
+      ...normalisePathList(service.composeBaseDir),
+      ...normalisePathList(service.composeBaseDirs),
+      ...envPathList(process.env.COMPOSE_BASE_DIRS),
+      ...normalisePathList(process.env.COMPOSE_BASE_DIR),
+      CONFIG_DIR,
+      process.cwd(),
+    ];
+
+    for (const rootDir of candidateRoots) {
+      pushUnique(attemptedPaths, path.resolve(rootDir, composeFile));
     }
-    if (process.env.COMPOSE_BASE_DIR) {
-      attemptedPaths.push(path.resolve(process.env.COMPOSE_BASE_DIR, composeFile));
-    }
-    attemptedPaths.push(path.resolve(CONFIG_DIR, composeFile));
-    attemptedPaths.push(path.resolve(process.cwd(), composeFile));
   }
 
   for (const candidate of attemptedPaths) {
