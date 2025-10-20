@@ -87,9 +87,9 @@ app.get('/api/devices', async (req, res) => {
 app.post('/api/services/:id/actions', async (req, res) => {
   const { id } = req.params;
   const { action, reason } = req.body;
-  if (!action || !['up', 'down', 'restart'].includes(action)) {
+  if (!action || !['up', 'build', 'down', 'restart'].includes(action)) {
     return res.status(400).json({
-      error: "Action must be one of 'up', 'down', or 'restart'",
+      error: "Action must be one of 'up', 'build', 'down', or 'restart'",
     });
   }
 
