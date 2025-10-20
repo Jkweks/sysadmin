@@ -45,6 +45,7 @@ The services read from `server/services.config.json` (or the file referenced by 
 ### Fields
 
 - `project`, `service`, `composeFile`, and `composeServices` are optional, but when provided they allow the backend to build helpful `docker compose` commands that N8N can run.
+- `composeBaseDir` (string) or `composeBaseDirs` (array) can be supplied when compose files live outside the dashboard repository. Relative `composeFile` entries are resolved against these directories, then against the `COMPOSE_BASE_DIRS`/`COMPOSE_BASE_DIR` environment variables, the directory containing the services configuration file, and finally the current working directory.
 - `webhook` overrides the global N8N settings for a specific service. Headers are merged with the global headers. The `payload` object (if supplied) is merged into the webhook payload as `config`.
 
 ## Webhook payload
