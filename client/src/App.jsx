@@ -61,6 +61,11 @@ function ServiceRow({ service, onAction, busyId }) {
   const [showDetails, setShowDetails] = useState(false);
   const isBusy = busyId === service.id;
   const containers = service.status.containers || [];
+  const stackServices = service.stack?.services || [];
+  const stackError = service.stack?.error || null;
+  const stackProject = service.stack?.project || service.compose?.project || 'default';
+  const stackFile = service.stack?.file || service.compose?.file || 'docker-compose.yml';
+  const primaryStackService = service.stack?.primaryService || null;
 
   const desiredLabel = useMemo(() => {
     if (!service.desired) return '—';
@@ -160,20 +165,23 @@ function ServiceRow({ service, onAction, busyId }) {
             <div className="details-grid">
               <div>
                 <h4>Compose context</h4>
-                {service.compose ? (
+                {service.compose || service.stack ? (
                   <ul>
                     <li>
-                      <strong>Project:</strong> {service.compose.project || 'default'}
+                      <strong>Project:</strong> {stackProject || 'default'}
                     </li>
                     <li>
-                      <strong>File:</strong> {service.compose.file || 'docker-compose.yml'}
+                      <strong>File:</strong> {stackFile || 'docker-compose.yml'}
                     </li>
                     <li>
-                      <strong>Services:</strong>{' '}
-                      {service.compose.services?.length
-                        ? service.compose.services.join(', ')
-                        : '—'}
+                      <strong>Services tracked:</strong>{' '}
+                      {stackServices.length > 0 ? stackServices.length : '—'}
                     </li>
+                    {primaryStackService && stackServices.length > 0 && (
+                      <li>
+                        <strong>Primary service:</strong> {primaryStackService}
+                      </li>
+                    )}
                   </ul>
                 ) : (
                   <p>No compose metadata available.</p>
@@ -190,6 +198,40 @@ function ServiceRow({ service, onAction, busyId }) {
                   </div>
                 )}
               </div>
+              {(stackServices.length > 0 || stackError) && (
+                <div>
+                  <h4>Stack services</h4>
+                  {stackError && <div className="stack-error">{stackError}</div>}
+                  {stackServices.length > 0 ? (
+                    <ul className="stack-service-list">
+                      {stackServices.map((stackService) => (
+                        <li key={stackService.name} className="stack-service-item">
+                          <div className="stack-service-header">
+                            <div className="stack-service-title">
+                              <span className="stack-service-name">{stackService.name}</span>
+                              {stackService.name === primaryStackService && (
+                                <span className="stack-primary-tag">Primary</span>
+                              )}
+                            </div>
+                            <StatusPill status={stackService.status} />
+                          </div>
+                          {stackService.status?.detail && (
+                            <div className="stack-service-detail">{stackService.status.detail}</div>
+                          )}
+                          {stackService.status?.containers?.length > 0 && (
+                            <div className="stack-service-meta">
+                              {stackService.status.containers.length} container
+                              {stackService.status.containers.length === 1 ? '' : 's'}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    !stackError && <p>No services discovered in compose file.</p>
+                  )}
+                </div>
+              )}
               <div>
                 <h4>Containers</h4>
                 {containers.length > 0 ? (
@@ -199,6 +241,9 @@ function ServiceRow({ service, onAction, busyId }) {
                         <div className="container-name">{container.name}</div>
                         <div className="container-meta">
                           <span>{container.status}</span>
+                          {container.composeService && (
+                            <span> · Service: {container.composeService}</span>
+                          )}
                           {container.health && <span> · Health: {container.health}</span>}
                           {container.exitCode !== null && (
                             <span> · Exit: {container.exitCode}</span>
