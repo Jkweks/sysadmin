@@ -15,6 +15,7 @@ services:
       - ./server/services.config.json:/app/services.config.json:ro
       - ./server/devices.config.json:/app/devices.config.json:ro
       - /var/run/docker.sock:/var/run/docker.sock
+      - /mnt/homeNAS/Container:/mnt/homeNAS/Container:ro
     ports:
       - "3033:3001"
     restart: unless-stopped

@@ -5,7 +5,7 @@
   "description": "Generates labels for items",
   "project": "labelgen",
   "service": "frontend",
-  "composeFile": "./docker-compose.yml",
+  "composeFile": "/mnt/homeNAS/Container/labelgen/docker-compose.yml",
   "webhook": {
     "url": "https://n8n.kweks.co/webhook/04fca9af-9205-4dad-829b-a6a9d110d1a5",
       "type": "compose-service"
@@ -17,7 +17,7 @@
   "description": "Fabrication related utilities",
   "project": "fab_utils",
   "service": "web",
-  "composeFile": "./docker-compose.yml",
+  "composeFile": "/mnt/homeNAS/Container/fab_utils/docker-compose.yml",
   "webhook": {
     "url": "https://n8n.kweks.co/webhook/04fca9af-9205-4dad-829b-a6a9d110d1a5",
       "type": "compose-service"
@@ -29,7 +29,7 @@
   "description": "Fabrication Dashboard",
   "project": "fabmin",
   "service": "frontend",
-  "composeFile": "./docker-compose.yml",
+  "composeFile": "/mnt/homeNAS/Container/fabmin/docker-compose.yml",
   "webhook": {
     "url": "https://n8n.kweks.co/webhook/04fca9af-9205-4dad-829b-a6a9d110d1a5",
       "type": "compose-service"
