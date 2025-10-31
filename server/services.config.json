@@ -24,12 +24,12 @@
     }
 },
 {  
-  "id": "fabmin",
+  "id": "forgedesk",
   "label": "ForgeDesk App",
   "description": "Fabrication Dashboard",
-  "project": "fabmin",
+  "project": "forgedesk",
   "service": "frontend",
-  "composeFile": "/mnt/homeNAS/Container/fabmin/docker-compose.yml",
+  "composeFile": "/mnt/homeNAS/Container/forgedesk/docker-compose.yml",
   "webhook": {
     "url": "https://n8n.kweks.co/webhook/04fca9af-9205-4dad-829b-a6a9d110d1a5",
       "type": "compose-service"
